@@ -982,4 +982,4 @@ if __name__ == '__main__':
 
     # รัน Flask application
     # debug=True จะทำให้ Server รีโหลดอัตโนมัติเมื่อโค้ดเปลี่ยน และแสดง traceback ที่ละเอียดขึ้น
-    app.run(debug=True)
+    app.run(debug=True,host= '0.0.0.0',port=5050)
