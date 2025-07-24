@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Report Generator</title>
+    <style>
+        body {
+            font-family: 'THSarabunNew', sans-serif; /* ตรวจสอบให้แน่ใจว่าฟอนต์ถูกโหลดหรือมีในระบบ */
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #fff;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 700px; /* เพิ่มความกว้างเล็กน้อย */
+            max-height: 95vh; /* จำกัดความสูง */
+            overflow-y: auto; /* เพิ่ม scrollbar ถ้าเนื้อหาเกิน */
+        }
+        h1 {
+            color: #1e88e5;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-upload-label {
+            background-color: #1e88e5;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .file-upload-label:hover {
+            background-color: #1565c0;
+        }
+        #file-name {
+            margin-top: 10px;
+            color: #555;
+            font-size: 1rem;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        button {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem; /* ปรับขนาดฟอนต์ปุ่ม */
+            transition: background-color 0.3s;
+            flex-grow: 1; /* ทำให้ปุ่มขยายเต็มพื้นที่ */
+            max-width: 200px; /* จำกัดความกว้างปุ่ม */
+        }
+        #submit-button {
+            background-color: #4caf50;
+            color: white;
+        }
+        #submit-button:hover:not([disabled]) {
+            background-color: #43a047;
+        }
+        #cancel-button {
+            background-color: #f44336;
+            color: white;
+            display: none; /* Hide by default */
+        }
+        #cancel-button:hover:not([disabled]) {
+            background-color: #d32f2f;
+        }
+        #download-button {
+            background-color: #03a9f4; /* Blue for download */
+            color: white;
+            display: none; /* Hide by default */
+        }
+        #download-button:hover:not([disabled]) {
+            background-color: #0288d1;
+        }
+        button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #status-area {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            display: none; /* Hide by default */
+            text-align: left; /* จัดข้อความภายในให้ชิดซ้าย */
+        }
+        #status-message {
+            font-size: 1.2rem;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            height: 25px;
+        }
+        .progress-bar {
+            width: 0%;
+            background-color: #64b5f6;
+            height: 100%;
+            transition: width 0.3s ease;
+            text-align: center;
+            color: white;
+            line-height: 25px;
+            font-weight: bold;
+        }
+        #progress-text {
+            margin-top: 10px;
+            color: #555;
+            font-size: 1rem;
+        }
+        #log-area {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            max-height: 200px; /* จำกัดความสูงของ Log */
+            overflow-y: auto; /* เพิ่ม scrollbar */
+            font-family: monospace; /* ใช้ฟอนต์ monospace สำหรับ log */
+            font-size: 0.9rem;
+            white-space: pre-wrap; /* เพื่อให้ข้อความ log ขึ้นบรรทัดใหม่ได้ */
+            text-align: left;
+            word-break: break-all; /* เพิ่มบรรทัดนี้เพื่อป้องกันข้อความยาวๆ ล้น */
+        }
+        #log-area div {
+            margin-bottom: 2px; /* ระยะห่างระหว่างแต่ละบรรทัด log */
+        }
+        /* Log message colors based on prefix */
+        .log-success { color: #4CAF50; } /* เขียว */
+        .log-error { color: #F44336; } /* แดง */
+        .log-warning { color: #FF9800; } /* ส้ม */
+        .log-info { color: #2196F3; } /* ฟ้า */
+        .log-critical { color: #D32F2F; font-weight: bold; } /* แดงเข้ม */
+
+        #results-area {
+            margin-top: 2rem;
+            display: none;
+            text-align: left;
+        }
+        #summary-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        #summary-list li {
+            margin-bottom: 5px;
+        }
+        .status-icon {
+            font-weight: bold;
+            font-size: 1.5em;
+            vertical-align: middle;
+        }
+        .success-icon {
+            color: #4caf50;
+        }
+        .failure-icon {
+            color: #f44336;
+        }
+        .warning-icon {
+            color: #ff9800; /* สีส้มสำหรับ Warning */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Custumer Interface Summary Report by Hour</h1>
+    <div class="form-group">
+        <form id="upload-form">
+            <input type="file" id="excel_file" name="excel_file" accept=".xlsx, .xls" required>
+            <label for="excel_file" class="file-upload-label">
+                เลือกไฟล์ Excel
+            </label>
+            <div id="file-name">ยังไม่ได้เลือกไฟล์</div>
+        </form>
+    </div>
+    <div class="button-group">
+        <button id="submit-button" type="submit" form="upload-form" disabled>Export File</button>
+        <button id="cancel-button">ยกเลิก</button>
+        <button id="download-button" disabled>ดาวน์โหลดรายงาน (ZIP)</button>
+    </div>
+    
+    <div id="status-area">
+        <div id="status-message"></div>
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="progress-text"></div>
+        <div id="log-area"></div>
+    </div>
+
+    <div id="results-area">
+        <h3>สรุปผลการExport</h3>
+        <ul id="summary-list">
+        </ul>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('upload-form');
+    const fileInput = document.getElementById('excel_file');
+    const submitButton = document.getElementById('submit-button');
+    const cancelButton = document.getElementById('cancel-button');
+    const downloadButton = document.getElementById('download-button');
+    const fileNameDisplay = document.getElementById('file-name');
+    const statusArea = document.getElementById('status-area');
+    const statusMessage = document.getElementById('status-message');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const logArea = document.getElementById('log-area');
+    const resultsArea = document.getElementById('results-area');
+    const summaryList = document.getElementById('summary-list');
+    
+    let statusIntervalId;
+    let logIntervalId;
+    let currentJobId = null;
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            submitButton.disabled = false;
+        } else {
+            fileNameDisplay.textContent = 'ยังไม่ได้เลือกไฟล์';
+            submitButton.disabled = true;
+        }
+        // เมื่อเลือกไฟล์ใหม่ ให้ซ่อนสถานะและผลลัพธ์เก่าทั้งหมด
+        statusArea.style.display = 'none';
+        resultsArea.style.display = 'none';
+        downloadButton.style.display = 'none';
+        downloadButton.disabled = true;
+        cancelButton.style.display = 'none';
+        summaryList.innerHTML = '';
+        logArea.innerHTML = ''; // ล้าง log เก่า
+        clearIntervals(); // หยุด interval เก่าหากมี
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('กรุณาเลือกไฟล์ Excel ก่อน');
+            return;
+        }
+
+        // รีเซ็ต UI ก่อนเริ่มงานใหม่
+        submitButton.disabled = true;
+        cancelButton.style.display = 'inline-block';
+        cancelButton.disabled = false;
+        downloadButton.style.display = 'none'; // ซ่อนปุ่มดาวน์โหลดเมื่อเริ่มงานใหม่
+        downloadButton.disabled = true;
+        
+        statusArea.style.display = 'block';
+        resultsArea.style.display = 'none';
+        statusMessage.innerHTML = 'กำลังอัปโหลดและเริ่มประมวลผล...';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '';
+        progressText.textContent = '';
+        summaryList.innerHTML = '';
+        logArea.innerHTML = ''; // ล้าง log เก่า
+        clearIntervals(); // ตรวจสอบให้แน่ใจว่าได้หยุด interval เก่าทั้งหมดแล้ว
+
+        const formData = new FormData();
+        formData.append('excel_file', file);
+
+        try {
+            const response = await fetch('/generate_report', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Server returned an error');
+            }
+
+            const data = await response.json();
+            currentJobId = data.job_id;
+
+            statusMessage.innerHTML = `การประมวลผลสำหรับไฟล์ <b>${file.name}</b> เริ่มต้นขึ้นแล้ว...`;
+
+            // เริ่มดึงสถานะ
+            statusIntervalId = setInterval(fetchStatus, 1000);
+            // เริ่มดึง Log
+            logIntervalId = setInterval(fetchLogs, 500);
+
+        } catch (error) {
+            statusMessage.innerHTML = `❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: ${error.message}`;
+            progressBar.style.width = '0%';
+            progressBar.textContent = '';
+            progressText.textContent = '';
+            submitButton.disabled = false;
+            cancelButton.style.display = 'none';
+            downloadButton.style.display = 'none';
+            clearIntervals();
+        }
+    });
+
+    cancelButton.addEventListener('click', async () => {
+        if (currentJobId) {
+            cancelButton.disabled = true;
+            statusMessage.innerHTML = 'กำลังส่งคำขอยกเลิก...';
+            try {
+                const response = await fetch(`/cancel/${currentJobId}`, { method: 'POST' });
+                if (response.ok) {
+                    console.log('Cancel request sent successfully');
+                    // fetchStatus จะจัดการเมื่อได้รับสถานะ 'canceled'
+                } else {
+                    const errorData = await response.json();
+                    statusMessage.innerHTML = `❌ ไม่สามารถส่งคำขอยกเลิกได้: ${errorData.error || 'Unknown error'}`;
+                    cancelButton.disabled = false;
+                }
+            } catch (error) {
+                statusMessage.innerHTML = '❌ เกิดข้อผิดพลาดในการยกเลิก: ' + error.message;
+                cancelButton.disabled = false;
+            }
+        }
+    });
+
+    downloadButton.addEventListener('click', () => {
+        if (currentJobId) {
+            // เมื่อคลิกปุ่มดาวน์โหลด ให้เบราว์เซอร์เริ่มดาวน์โหลด
+            window.location.href = `/download_report/${currentJobId}`;
+            // ไม่ต้อง disabled ปุ่มหลังจากดาวน์โหลด เพราะต้องการให้ดาวน์โหลดซ้ำได้
+            // และไม่เปลี่ยน statusMessage เพราะกระบวนการประมวลผลเสร็จแล้ว
+        }
+    });
+
+    function clearIntervals() {
+        if (statusIntervalId) {
+            clearInterval(statusIntervalId);
+            statusIntervalId = null;
+        }
+        if (logIntervalId) {
+            clearInterval(logIntervalId);
+            logIntervalId = null;
+        }
+        cancelButton.style.display = 'none'; // ซ่อนปุ่มยกเลิกเมื่อไม่มีการประมวลผล
+    }
+
+    async function fetchStatus() {
+        if (!currentJobId) return;
+
+        try {
+            const statusResponse = await fetch(`/status/${currentJobId}`);
+            const statusData = await statusResponse.json();
+
+            if (statusData.error) {
+                statusMessage.innerHTML = `❌ เกิดข้อผิดพลาด: ${statusData.error}`;
+                progressBar.style.width = '0%';
+                progressBar.textContent = '';
+                progressText.textContent = '';
+                clearIntervals();
+                submitButton.disabled = false;
+                downloadButton.style.display = 'none';
+                return;
+            }
+
+            if (statusData.canceled) {
+                statusMessage.innerHTML = '⛔ การประมวลผลถูกยกเลิกแล้ว';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '';
+                progressText.textContent = '';
+                clearIntervals();
+                submitButton.disabled = false;
+                downloadButton.style.display = 'none';
+                return;
+            }
+
+            if (statusData.total > 0) {
+                const processed = statusData.processed;
+                const total = statusData.total;
+                const percentage = (processed / total) * 100;
+                
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${Math.round(percentage)}%`;
+                progressText.textContent = `ประมวลผลแล้ว ${processed} จาก ${total} รายการ`;
+
+                if (statusData.completed) {
+                    statusMessage.innerHTML = '✅ Exportเสร็จสมบูรณ์!';
+                    clearIntervals();
+                    submitButton.disabled = false;
+                    
+                     // หากการประมวลผลเสร็จสมบูรณ์และมีไฟล์ ZIP
+                    if (statusData.zip_file_path) {
+                        // เริ่มดาวน์โหลดไฟล์ ZIP โดยอัตโนมัติ
+                        window.location.href = `/download_report/${currentJobId}`;
+                        // ซ่อนปุ่มดาวน์โหลดตามคำขอ "ไม่ต้องมีปุ่ม"
+                        downloadButton.style.display = 'none';
+                        downloadButton.disabled = true;
+                    } else {
+                        // กรณีเสร็จสิ้นแต่ไม่มีไฟล์ ZIP (อาจเกิดข้อผิดพลาดในการสร้าง ZIP)
+                        downloadButton.style.display = 'none';
+                        downloadButton.disabled = true;
+                        statusMessage.innerHTML += '<br><span style="color:red; font-size:0.9em;">ไม่สามารถสร้างไฟล์ ZIP ได้ โปรดตรวจสอบ Log หรือ Terminal</span>';
+                    }
+
+                    // คำนวณสรุปผล
+                    let csvSuccessCount = 0;
+                    let csvFailedFiles = [];
+                    let pdfSuccessCount = 0;
+                    let pdfFailedFiles = [];
+                    let skipCount = 0;
+                    
+                    if (statusData.results && statusData.results.length > 0) {
+                        statusData.results.forEach(result => {
+                            if (result.error_message === "ข้อมูล NodeID หรือ Interface ID ไม่สมบูรณ์") {
+                                skipCount++;
+                            } else {
+                                if (result.csv_success) {
+                                    csvSuccessCount++;
+                                } else {
+                                    const identifier = (result.node_name && result.node_name.includes('_') && result.node_name.split('_').length >= 3) ? 
+                                        `(${result.node_name.split('_').slice(-2).join('/')})` : 
+                                        '';
+                                    csvFailedFiles.push(`${result.node_name || 'ไม่ระบุชื่อ'} ${identifier}`);
+                                }
+                                if (result.pdf_success) {
+                                    pdfSuccessCount++;
+                                } else {
+                                    const identifier = (result.node_name && result.node_name.includes('_') && result.node_name.split('_').length >= 3) ? 
+                                        `(${result.node_name.split('_').slice(-2).join('/')})` : 
+                                        '';
+                                    pdfFailedFiles.push(`${result.node_name || 'ไม่ระบุชื่อ'} ${identifier}`);
+                                }
+                            }
+                        });
+                    }
+
+                    summaryList.innerHTML = `
+                        <li><span class="status-icon success-icon">✔</span> <b>CSV:</b> Exportสำเร็จ ${csvSuccessCount} ไฟล์</li>
+                        <li><span class="status-icon success-icon">✔</span> <b>PDF:</b> Exportสำเร็จ ${pdfSuccessCount} ไฟล์</li>
+                    `;
+                    
+                    if (skipCount > 0) {
+                        const skipItem = document.createElement('li');
+                        skipItem.innerHTML = `<span class="status-icon warning-icon">⚠</span> <b>ข้ามการประมวลผล:</b> ${skipCount} รายการ (NodeID/Interface ID ไม่สมบูรณ์)`;
+                        summaryList.appendChild(skipItem);
+                    }
+
+                    if (csvFailedFiles.length > 0) {
+                        const csvFailedItem = document.createElement('li');
+                        csvFailedItem.innerHTML = `<span class="status-icon failure-icon">✘</span> <b>CSV:</b> Exportไม่สำเร็จ ${csvFailedFiles.length} ไฟล์`;
+                        summaryList.appendChild(csvFailedItem);
+                        
+                        const failedList = document.createElement('ul');
+                        failedList.style.fontSize = '0.9em';
+                        failedList.style.marginLeft = '20px';
+                        csvFailedFiles.forEach(fileName => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = fileName;
+                            failedList.appendChild(listItem);
+                        });
+                        summaryList.appendChild(failedList);
+                    }
+
+                    if (pdfFailedFiles.length > 0) {
+                        const pdfFailedItem = document.createElement('li');
+                        pdfFailedItem.innerHTML = `<span class="status-icon failure-icon">✘</span> <b>PDF:</b> Exportไม่สำเร็จ ${pdfFailedFiles.length} ไฟล์`;
+                        summaryList.appendChild(pdfFailedItem);
+                        
+                        const failedList = document.createElement('ul');
+                        failedList.style.fontSize = '0.9em';
+                        failedList.style.marginLeft = '20px';
+                        pdfFailedFiles.forEach(fileName => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = fileName;
+                            failedList.appendChild(listItem);
+                        });
+                        summaryList.appendChild(failedList);
+                    }
+
+                    resultsArea.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching status:", error);
+            statusMessage.innerHTML = `❌ ข้อผิดพลาดในการอัปเดตสถานะ: ${error.message}`;
+            clearIntervals();
+            submitButton.disabled = false;
+            downloadButton.style.display = 'none';
+        }
+    }
+
+    async function fetchLogs() {
+        if (!currentJobId) return;
+        try {
+            const logResponse = await fetch(`/logs/${currentJobId}`);
+            const logData = await logResponse.json();
+            if (logData.logs && logData.logs.length > 0) {
+                // เก็บข้อความ log ที่มีอยู่แล้วเพื่อตรวจสอบการซ้ำซ้อน
+                const existingLogMessages = new Set(Array.from(logArea.children).map(div => div.textContent));
+
+                logData.logs.forEach(log => {
+                    // ตรวจสอบว่า logEntry มีอยู่แล้วหรือไม่ เพื่อป้องกันการเพิ่มซ้ำ
+                    if (!existingLogMessages.has(log)) {
+                        const logEntry = document.createElement('div');
+                        logEntry.textContent = log; 
+
+                        // Assign class based on log content for coloring
+                        if (log.startsWith('✅')) {
+                            logEntry.classList.add('log-success');
+                        } else if (log.startsWith('❌')) {
+                            logEntry.classList.add('log-error');
+                        } else if (log.startsWith('⚠️') || log.startsWith('⛔')) {
+                            logEntry.classList.add('log-warning');
+                        } else if (log.startsWith('📊') || log.startsWith('▶') || log.startsWith('📂') || log.startsWith('📥') || log.startsWith('🗑️') || log.startsWith('🧹') || log.startsWith('✨') || log.startsWith('📁')) {
+                            logEntry.classList.add('log-info');
+                        } else {
+                            logEntry.classList.add('log-info'); // Default to info color
+                        }
+                        
+                        logArea.appendChild(logEntry);
+                        existingLogMessages.add(log); // เพิ่ม log ใหม่เข้าไปใน Set
+                    }
+                });
+                logArea.scrollTop = logArea.scrollHeight; // เลื่อนไปด้านล่างสุด
+            }
+        } catch (error) {
+            console.error("Error fetching logs:", error);
+            // ไม่ต้องแสดง error message บน UI ถ้าดึง log ไม่ได้
+        }
+    }
+</script>
+
+</body>
+</html>
